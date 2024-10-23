@@ -7,40 +7,56 @@ Author: David Estrin
 Version: 1.0
 Date: 08-29-2024
 """
-
 from rich.console import Console
 from rich.table import Table
 from rich.live import Live
+from rich.box import SIMPLE
 import time
+import ipdb
 
 console = Console()
 
 class Logger:
-    def __init__(self, data):
-        self.data = data
-        self.step_column = 4
-        self.progress_column = 5
+    """ Logs in command line progress of project """
+    def __init__(self, 
+                 table_name, 
+                 data=[], 
+                 columns_names=["Cage","Subject","Group","Day","Code Step","Progress"],
+                 column_styles=["bold cyan","bold green","italic magenta ","italic yellow","bold red","bright_magenta"]):
+        
+        # Build class with attributes below
+        self.table_name = table_name
+        self.column_names = columns_names
+        self.column_styles = column_styles
+        self.data = data # List of lists, containing data for the table to be updated
         self.live = None  # Placeholder for the Live object
+        self.step_column = [i for i,j in enumerate(columns_names) if j=="Code Step"][0]
+        self.progress_column = [i for i,j in enumerate(columns_names) if j=="Progress"][0]
 
-    def generate_table(self):
-        """Generate and return a table"""
-        table = Table(title="Sweet 2 Plus Status:")
+    def set_up_table(self):
+        """Set up the table"""
+        # Build table use rich package objects
+        table = Table(title=self.table_name,box=SIMPLE)
 
-        table.add_column("Cage", justify="left", style="bold cyan", no_wrap=True)
-        table.add_column("Subject", justify="left", style="bold green", no_wrap=True)
-        table.add_column("Group", justify="left", style="italic magenta ", no_wrap=True)
-        table.add_column("Day", justify="left", style="italic yellow", no_wrap=True)
-        table.add_column("Step", justify="center", style="bold red", no_wrap=True)
-        table.add_column("Progress", justify="right", style="bright_magenta", no_wrap=True)
+        # Loop over column names and styles to build table
+        for column_oh,style_oh in zip(self.column_names,self.column_styles):
+            table.add_column(column_oh, justify="left", style=style_oh, no_wrap=True)
 
-        for cage, subject, group, day, step, progress in self.data:
-            table.add_row(cage, subject, group, day, step, f"{progress}%")
-
+        # If data was orginally given, build the table
+        if self.data:
+            try:
+                for cage, subject, group, day, step, progress in self.data:
+                    table.add_row(cage, subject, group, day, step, f"{progress}%")
+            except:
+                raise('Issue with self.data format, likely in wrong format. Is it a list of lists?')
         return table
+    
+    def append_data(self,input_data):
+        self.data.append(input_data)
 
     def start_live(self):
         """Start the live display"""
-        self.live = Live(self.generate_table(), console=console, refresh_per_second=4)
+        self.live = Live(self.set_up_table(), console=console, refresh_per_second=4)
         self.live.start()
 
     def stop_live(self):
@@ -49,54 +65,39 @@ class Logger:
             self.live.stop()
 
     def update_table(self, cage, subject, group, day, step, progress):
-        """Update the table for Sweet 2 Plus and refresh"""
-        # Find the row with the given information
-        matching_indices = [
-            index for index, row in enumerate(self.data)
-            if row[0] == cage and row[1] == subject and row[2] == group and row[3] == day
-        ]
+        """Update Table with new data"""
+        # If table is empty, add first data
+        if not self.data:
+            input_data_oh = [cage,subject,group,day,step,progress]
+            self.append_data(input_data=input_data_oh)
 
-        matching_index = matching_indices[0] if matching_indices else None
+        # Else, table not empty
+        else: 
+            matching_indices = [index for index, row in enumerate(self.data) if row[0] == cage and row[1] == subject and row[2] == group and row[3] == day]
+            matching_index = matching_indices[0] if matching_indices else None
 
-        if matching_index is not None:
-            # Update that row with new information
-            self.data[matching_index][self.step_column] = step
-            self.data[matching_index][self.progress_column] = progress
+            # If no matching data, append new row
+            if matching_index is None:
+                input_data_oh = [cage,subject,group,day,step,progress]
+                self.append_data(input_data=input_data_oh)
 
-            # Refresh the table with the updated data
-            if self.live:
-                self.live.update(self.generate_table())
+            # If matching data, update that row
+            else:
+                self.data[matching_index][self.step_column] = step
+                self.data[matching_index][self.progress_column] = progress
+
+        # Refresh the table with the updated data
+        if self.live:
+            self.live.update(self.set_up_table())
 
 
 if __name__ == '__main__':
-    data = [
-        ["122", "233", "Group1", "2024-10-15", "Active", "1"],
-        ["123", "234", "Group1", "2024-10-14", "Inactive", "2"],
-        ["124", "235", "Group2", "2024-10-13", "Active", "3"],
-        ["122", "233", "Group1", "2024-10-14", "Active", "4"],
-        ["125", "236", "Group2", "2024-10-12", "Inactive", "5"],
-        ["126", "237", "Group2", "2024-10-11", "Active", "6"],
-        ["122", "238", "Group3", "2024-10-10", "Active", "7"],
-        ["127", "239", "Group3", "2024-10-09", "Inactive", "8"],
-        ["128", "240", "Group4", "2024-10-08", "Active", "9"],
-        ["123", "234", "Group1", "2024-10-07", "Inactive", "10"],
-        ["122", "233", "Group1", "2024-10-06", "Active", "11"],
-        ["125", "236", "Group2", "2024-10-05", "Inactive", "12"],
-        ["126", "237", "Group2", "2024-10-04", "Active", "13"],
-        ["124", "235", "Group2", "2024-10-03", "Inactive", "14"],
-        ["122", "233", "Group1", "2024-10-02", "Active", "15"]
-    ]
-
-    cli_log = Logger(data)
-    cli_log.start_live()
-
+    # Build an example table
+    cli_log = Logger('Example Table:')
     try:
-        # Simulate some updates
-        time.sleep(2)
-        cli_log.update_table("122", "233", "Group1", "2024-10-14", "Dave", "100")
-        time.sleep(2)
-        cli_log.update_table("124", "235", "Group2", "2024-10-13", "Processing", "75")
-        time.sleep(2)
+        cli_log.start_live()
+        for i in range(1000):
+            time.sleep(0.1)
+            cli_log.update_table("124", "235", "Group24", "2024-10-13", "Processing", str(i))
     finally:
-        # Ensure the live display stops properly
         cli_log.stop_live()

@@ -1,0 +1,9 @@
+README.md
+setup.py
+projectmanager/CLIlogger.py
+projectmanager/__init__.py
+projectmanager.egg-info/PKG-INFO
+projectmanager.egg-info/SOURCES.txt
+projectmanager.egg-info/dependency_links.txt
+projectmanager.egg-info/requires.txt
+projectmanager.egg-info/top_level.txt

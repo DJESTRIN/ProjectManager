@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ProjectManager',
+    name='projectmanager',
     version='0.1',
     packages=find_packages(),  # Automatically find subfolder1 and subfolder2 as packages.
     install_requires=['rich'],
